@@ -77,129 +77,20 @@ int setSocketTimeout(SOCKET sockfd, int seconds) {
 #endif
 }
 
-// Функция для получения IP-адреса хоста
-int resolveHost(const char *hostname, struct sockaddr_in *addr) {
-    struct hostent *host;
-
-#ifdef _WIN32
-    WSADATA wsaData;
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        return 0;
-    }
-#endif
-
-    host = gethostbyname(hostname);
-    if (host == NULL) {
-        return 0;
-    }
-
-    addr->sin_family = AF_INET;
-    addr->sin_port = htons(DEFAULT_PORT);
-    memcpy(&addr->sin_addr, host->h_addr_list[0], host->h_length);
-
-    return 1;
-}
-
-SOCKET getServerConnection(ThreadData *data) {
-    SOCKET sockFd = INVALID_SOCKET;
-    struct sockaddr_in serverAddress;
-
-    // Получаем IP-адрес хоста
-    if (!resolveHost(DEFAULT_HOST, &serverAddress)) {
-        data->success = 0;
-        snprintf(data->errorMsg, sizeof(*data->errorMsg), "Failed to resolve host: %s", DEFAULT_HOST);
-        return sockFd;
-    }
-
+SOCKET setupServerSocket() {
     // Создаем сокет
-    sockFd = socket(AF_INET, SOCK_STREAM, 0);
+    SOCKET sockFd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockFd == INVALID_SOCKET) {
-        data->success = 0;
-        snprintf(data->errorMsg, sizeof(data->errorMsg), "Failed to create socket");
+        perror("Failed to create socket");
         return sockFd;
     }
 
     // Устанавливаем таймаут
     if (!setSocketTimeout(sockFd, DEFAULT_TIMEOUT_SECONDS)) {
-        data->success = 0;
-        snprintf(data->errorMsg, sizeof(data->errorMsg), "Failed to set socket timeout");
-        return sockFd;
+        perror("Failed to set socket timeout");
     }
 
-    // Подключаемся к серверу
-    if (connect(sockFd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
-        data->success = 0;
-        snprintf(data->errorMsg, sizeof(data->errorMsg), "Failed to connect to %s:%d", DEFAULT_HOST, DEFAULT_PORT);
-    }
     return sockFd;
-}
-
-/**
- * Выполнить шаг программы
- *
- * @param data - ThreadData
- */
-void runStep(ThreadData *data) {
-    char request[512];
-    char response[2048];
-
-    SOCKET sockfd = getServerConnection(data);
-
-    // Строим HTTP запрос
-    buildHttpRequest(request, sizeof(request), DEFAULT_HOST, DEFAULT_PATH);
-
-    // Отправляем запрос
-    ssize_t bytesSent;
-
-#ifdef _WIN32
-    bytesSent = send(sockfd, request, (int) strlen(request), 0);
-#endif
-#ifdef __linux__
-    bytesSent = send(sockfd, request, strlen(request), 0);
-#endif
-
-    if (bytesSent == SOCKET_ERROR) {
-        data->success = 0;
-        snprintf(data->errorMsg, sizeof(data->errorMsg), "Failed to send request");
-        if (sockfd != SOCKET_ERROR) {
-            closesocket(sockfd);
-        }
-        return;
-    }
-
-    // Принимаем ответ
-    ssize_t totalReceived = 0;
-    ssize_t bytesReceived;
-
-    while (1) {
-#ifdef _WIN32
-        bytesReceived = recv(sockfd, response + totalReceived, (int) (sizeof(response) - totalReceived - 1), 0);
-#endif
-#ifdef __linux__
-        bytesReceived = recv(sockfd, response + totalReceived, sizeof(response) - totalReceived - 1, 0);
-#endif
-
-        if (bytesReceived > 0) {
-            totalReceived += bytesReceived;
-            if (totalReceived >= sizeof(response) - 1) {
-                break;
-            }
-        } else if (bytesReceived == 0) {
-            // Соединение закрыто
-            break;
-        } else {
-            // Ошибка приема
-            data->success = 0;
-            snprintf(data->errorMsg, sizeof(data->errorMsg), "Failed to receive response");
-            if (sockfd != SOCKET_ERROR) {
-                closesocket(sockfd);
-            }
-            return;
-        }
-    }
-    // printf("%i == %lu \n", i, threadId);
-    //
-    // Sleep(rand() / 10 + rand());
 }
 
 // Основная функция потока
@@ -211,111 +102,112 @@ void *httpEndpoint(void *parameters)
 {
     ThreadData *data = parameters;
     data->success = 0;
+    data->failure = 0;
 
-    data->allTime = -1L;
-    data->minTime = 120 * 3600 * 1000;
-    data->maxTime = -1L;
-    data->minTimeStep = -1;
-    data->maxTimeStep = -1;
+    data->allTime = 0;
+    data->minTime = INT_MAX;
+    data->maxTime = 0;
+    data->minTimeStep = 0;
+    data->maxTimeStep = 0;
 
     clock_t startTime, endTime, startStepTime, endStepTime;
 
-    // runStep(data);
     char request[512];
     char response[2048];
 
-    SOCKET sockfd = getServerConnection(data);
-    // Строим HTTP запрос
-    buildHttpRequest(request, sizeof(request), DEFAULT_HOST, DEFAULT_PATH);
-
     startTime = clock();
+
     HANDLE hEvent = data->handleEvent;
     DWORD threadId = GetCurrentThreadId();
-    printf("Thread ID: %ul Inner thread Id %i\n", threadId, data->innerThreadId);
+    printf("Thread ID: %lu Inner thread Id %i\n", threadId, data->innerThreadId);
 
     for (int i = 0; i < data->loopNumber; i++) {
-        startStepTime = clock();
+        SOCKET sockFd = setupServerSocket();
+        // Подключаемся к серверу
+        if (connect(sockFd, (struct sockaddr *) data->serverAddress, sizeof(struct sockaddr_in)) != SOCKET_ERROR) {
+            // Строим HTTP запрос
+            buildHttpRequest(request, sizeof(request), DEFAULT_HOST, DEFAULT_PATH);
+            startStepTime = clock();
 
-        // Отправляем запрос
-        ssize_t bytesSent;
+            // Отправляем запрос
+            ssize_t bytesSent;
 
 #ifdef _WIN32
-        bytesSent = send(sockfd, request, (int) strlen(request), 0);
+            bytesSent = send(sockFd, request, (int) strlen(request), 0);
 #endif
 #ifdef __linux__
-        bytesSent = send(sockfd, request, strlen(request), 0);
+            bytesSent = send(sockFd, request, strlen(request), 0);
 #endif
 
-        if (bytesSent == SOCKET_ERROR) {
-            data->success = 0;
-            snprintf(data->errorMsg, sizeof(data->errorMsg), "Failed to send request");
-            // if (sockfd != SOCKET_ERROR) {
-            //     closesocket(sockfd);
-            // }
-            // return 0;
-        }
-
-        // Принимаем ответ
-        ssize_t totalReceived = 0;
-        ssize_t bytesReceived;
-
-        int isError = 0;
-
-        while (1) {
-#ifdef _WIN32
-            bytesReceived = recv(sockfd, response + totalReceived, (int) (sizeof(response) - totalReceived - 1), 0);
-#endif
-#ifdef __linux__
-            bytesReceived = recv(sockfd, response + totalReceived, sizeof(response) - totalReceived - 1, 0);
-#endif
-
-            if (bytesReceived > 0) {
-                totalReceived += bytesReceived;
-                if (totalReceived >= sizeof(response) - 1) {
-                    break;
-                }
-            } else if (bytesReceived == 0) {
-                printf("%i Response : %s \n", i, response);
-                break;
-            } else {
-                // Ошибка приема
-                data->success = 0;
-                snprintf(data->errorMsg, sizeof(data->errorMsg), "Failed to receive response");
-                isError = 1;
+            if (bytesSent == SOCKET_ERROR) {
+                perror("Failed to send request");
+                data->failure++;
                 break;
             }
-        }
 
-        endStepTime = clock();
+            // Принимаем ответ
+            ssize_t totalReceived = 0;
+            ssize_t bytesReceived;
+            Sleep(10);
+            while (1) {
+#ifdef _WIN32
+                bytesReceived = recv(sockFd, response + totalReceived, (int) (sizeof(response) - totalReceived - 1), 0);
+#endif
+#ifdef __linux__
+                bytesReceived = recv(sockFd, response + totalReceived, sizeof(response) - totalReceived - 1, 0);
+#endif
 
-        long diffTime = endStepTime - startStepTime;
+                if (bytesReceived > 0) {
+                    totalReceived += bytesReceived;
+                    if (totalReceived >= sizeof(response) - 1) {
+#ifdef DEBUG
+                        //printf("%i Response INTERRUPT: %s \n", i, response);
+#endif
+                        break;
+                    }
+                } else if (bytesReceived == 0) {
+#ifdef DEBUG
+                    // printf("%i Response : %s \n", i, response);
+#endif
+                    break;
+                } else {
+                    // Ошибка приема
+                    data->failure++;
+                    perror("Failed to receive response");
+                    break;
+                }
+            }
 
-        if (i == 0) {
-            data->minTime = startStepTime;
-            data->firstTime = diffTime;
-        }
-        if (diffTime < data->minTime) {
-            data->minTime = diffTime;
-            data->minTimeStep = i;
-        }
-        if (diffTime > data->maxTime) {
-            data->maxTime = diffTime;
-            data->maxTimeStep = i;
-        }
-        if (isError) {
-            break;
+            endStepTime = clock();
+
+            long diffTime = endStepTime - startStepTime;
+
+            if (i == 0) {
+                data->minTime = diffTime;
+                data->maxTime = diffTime;
+                data->firstTime = diffTime;
+            }
+            if (diffTime < data->minTime) {
+                data->minTime = diffTime;
+                data->minTimeStep = i;
+            }
+            if (diffTime > data->maxTime) {
+                data->maxTime = diffTime;
+                data->maxTimeStep = i;
+            }
+            data->success++;
+            closesocket(sockFd);
+        } else {
+            perror("Failed to connect to port");
         }
     }
 
-    if (sockfd != SOCKET_ERROR) {
-        closesocket(sockfd);
-    }
+
     endTime = clock();
-    data->allTime = (endTime - startTime); // / data->loopNumber;
-    data->success = 1;
+    data->allTime = (endTime - startTime);
 
     SetEvent(hEvent);
-    printf("Event signaled by thread. %ul %i\n", threadId, data->innerThreadId);
+    // printf("Event signaled by thread. %lu %i\n", threadId, data->innerThreadId);
 
 #ifdef _WIN32
     return 0;

@@ -15,6 +15,8 @@
 
 #define POSSIBLE_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
+#define DEBUG 1
+
 /**
  * Удаление пробелов с левой стороны строки
  *

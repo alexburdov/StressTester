@@ -5,7 +5,7 @@
 #ifndef HTTPSTRESSCLIENTC_ENDPOINT_H
 #define HTTPSTRESSCLIENTC_ENDPOINT_H
 
-
+//TO DO Remove
 #define DEFAULT_NUM_THREADS 100
 #define DEFAULT_MAX_LOOP 1000
 #define DEFAULT_BATCH_SIZE 20
@@ -14,7 +14,7 @@
 #define DEFAULT_PATH "/echo"
 #define DEFAULT_EXPECTED_RESPONSE "Hello World!"
 #define DEFAULT_TIMEOUT_SECONDS 10
-
+//TO DO End Remove
 
 #define REQUEST_PATTERN "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: HTTP-Client-C/1.0 (Cross-Platform)\r\nConnection: close\r\n\r\n"
 
@@ -27,17 +27,6 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-// #define SOCKET_TYPE SOCKET
-// #define SOCKET_ERROR_CODE INVALID_SOCKET
-// #define SOCKET_ERROR_RESULT SOCKET_ERROR
-// #define CLOSE_SOCKET closesocket
-// #define THREAD_RETURN unsigned __stdcall
-// #define THREAD_CREATE _beginthreadex
-// #define THREAD_HANDLE HANDLE
-// #define THREAD_WAIT WaitForMultipleObjects
-// #define THREAD_CLOSE CloseHandle
-// #define SLEEP(x) Sleep(x)
-
 #elifdef __linux__
 
 #endif
@@ -45,25 +34,27 @@
 
 // Структура для передачи данных в поток
 typedef struct {
-    int innerThreadId;
-    int loopNumber;
+    unsigned int innerThreadId;
+    unsigned long loopNumber;
+
+    struct sockaddr_in *serverAddress;
+
 #ifdef _WIN32
     HANDLE handleEvent;
 #endif
 
-    int success;
+    unsigned long success;
+    unsigned long failure;
 
-    long allTime;
-    long minTime;
-    long maxTime;
-    long firstTime;
-    int minTimeStep;
-    int maxTimeStep;
+    unsigned int allTime;
+    unsigned int minTime;
+    unsigned int maxTime;
+    unsigned int firstTime;
+    unsigned long minTimeStep;
+    unsigned long maxTimeStep;
 
-    char* requestParameter[128];
-    char* responseParameter[128];
-
-    char errorMsg[128];
+    char *requestParameter[256];
+    char *responseParameter[256];
 } ThreadData;
 
 /**
