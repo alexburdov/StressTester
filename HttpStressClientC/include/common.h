@@ -66,7 +66,7 @@ uint64_t getNowInMs();
  * @param end - конец периода
  * @return  - раница в милисекундах
  */
-long timeDiff(clock_t start, clock_t end);
+unsigned long timeDiff(clock_t start, clock_t end);
 #endif
 
 #endif //HTTPSTRESSCLIENTC_COMMON_H

@@ -11,7 +11,6 @@
  *  Структура конфигурации приложения
  */
 typedef struct {
-
     struct sockaddr_in serverAddress;
     char* hostname;
     int port;

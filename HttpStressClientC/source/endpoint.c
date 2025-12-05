@@ -102,8 +102,7 @@ void *httpEndpoint(void *parameters)
 {
     ThreadData *data = parameters;
     data->success = 0;
-    data->failure = 0;
-
+    ZeroMemory(&data->failure, sizeof(data->failure));
     data->allTime = 0;
     data->minTime = INT_MAX;
     data->maxTime = 0;
@@ -119,7 +118,8 @@ void *httpEndpoint(void *parameters)
 
     HANDLE hEvent = data->handleEvent;
     DWORD threadId = GetCurrentThreadId();
-    printf("Thread ID: %lu Inner thread Id %i\n", threadId, data->innerThreadId);
+    data->processorId = GetCurrentProcessorNumber();
+    printf("Thread ID: %lu Inner thread Id %i Processor Number %lu \n", threadId, data->innerThreadId, data->processorId);
 
     for (int i = 0; i < data->loopNumber; i++) {
         SOCKET sockFd = setupServerSocket();
@@ -141,7 +141,7 @@ void *httpEndpoint(void *parameters)
 
             if (bytesSent == SOCKET_ERROR) {
                 perror("Failed to send request");
-                data->failure++;
+                data->failure[0]++;
                 break;
             }
 
@@ -172,7 +172,7 @@ void *httpEndpoint(void *parameters)
                     break;
                 } else {
                     // Ошибка приема
-                    data->failure++;
+                    data->failure[1]++;
                     perror("Failed to receive response");
                     break;
                 }
@@ -180,7 +180,7 @@ void *httpEndpoint(void *parameters)
 
             endStepTime = clock();
 
-            long diffTime = endStepTime - startStepTime;
+            unsigned long diffTime = timeDiff(startStepTime, endStepTime);
 
             if (i == 0) {
                 data->minTime = diffTime;
@@ -202,12 +202,13 @@ void *httpEndpoint(void *parameters)
         }
     }
 
-
     endTime = clock();
-    data->allTime = (endTime - startTime);
+    data->allTime = timeDiff(startTime, endTime);
 
     SetEvent(hEvent);
-    // printf("Event signaled by thread. %lu %i\n", threadId, data->innerThreadId);
+#ifdef DEBUG
+     printf("Event signaled by thread. %lu %i\n", threadId, data->innerThreadId);
+#endif
 
 #ifdef _WIN32
     return 0;

@@ -11,7 +11,7 @@
 #include "endpoint.h"
 
 #ifdef _WIN32
-void startWindows(Configuration* config);
+void startWindows(Configuration *config);
 #elifdef __linux__
 void startLinux(Configuration^ config);
 #endif

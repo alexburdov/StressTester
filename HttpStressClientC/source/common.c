@@ -49,10 +49,13 @@ uint64_t getNowInMs() {
 
 #ifdef _WIN32
 // Получить разницу во времени в миллисекундах
-long timeDiff(clock_t start, clock_t end) {
-    long elapsed;
-    elapsed = (start - end) / CLOCKS_PER_SEC * 1000;
+unsigned long timeDiff(clock_t start, clock_t end) {
+    unsigned long elapsed;
+    if (end > start) {
+        elapsed = end - start;
+    } else {
+        elapsed = start - end;
+    }
     return elapsed;
 }
 #endif
-

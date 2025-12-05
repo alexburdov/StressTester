@@ -41,12 +41,13 @@ typedef struct {
 
 #ifdef _WIN32
     HANDLE handleEvent;
+    DWORD processorId;
 #endif
 
     unsigned long success;
-    unsigned long failure;
+    unsigned long failure[2];
 
-    unsigned int allTime;
+    unsigned int allTime; // Не понятно как мерить среднее время - учитывать запуски потоков с ошибками или нет?
     unsigned int minTime;
     unsigned int maxTime;
     unsigned int firstTime;
