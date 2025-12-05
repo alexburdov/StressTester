@@ -8,6 +8,7 @@ void printStatistics(unsigned int numberThread, ThreadData *data) {
     unsigned int allFailure = 0;
     unsigned int socketFailure = 0;
     unsigned int receiveFailure = 0;
+    unsigned int sendFailure = 0;
 
     int numberFailureElement = sizeof(data[0].failure) / sizeof(data[0].failure[0]);
     for (int i = 0; i < numberThread; i++) {
@@ -16,25 +17,25 @@ void printStatistics(unsigned int numberThread, ThreadData *data) {
             allFailure += data[i].failure[j];
             failure += data[i].failure[j];
         }
-        socketFailure += data->failure[0];
-        receiveFailure += data[i].failure[1];
+        socketFailure += data[i].failure[SOCKET_FAILURE];
+        sendFailure += data[i].failure[SEND_FAILURE];
+        receiveFailure += data[i].failure[RECEIVE_FAILURE];
+
 
         printf(
-            "Thread ID = %i SUCCESS = %lu FAILURE = %u Socket failure %lu Receive failure = %lu First = %i All = %i Min = %i [%lu] Max = %i [%lu] \n",
-            data[i].innerThreadId, data->success, failure, data[i].failure[0], data[i].failure[1],
+            "Thread ID = %i SUCCESS = %lu FAILURE = %u Socket failure %lu Send failure = %lu Receive failure = %lu First = %i All = %i Min = %i [%lu] Max = %i [%lu] \n",
+            data[i].innerThreadId, data->success, failure, data[i].failure[SOCKET_FAILURE], data[i].failure[SEND_FAILURE], data[i].failure[RECEIVE_FAILURE],
             data[i].firstTime, data[i].allTime, data[i].minTime, data->minTimeStep, data[i].maxTime,
             data->maxTimeStep);
     }
     free(data);
-    printf("All failures = %i Socket failure = %i receiveFailure = %i \n", allFailure, socketFailure, receiveFailure);
+    printf("All failures = %i Socket failure = %i Send failure = %i Receive failure = %i \n", allFailure, socketFailure, sendFailure, receiveFailure);
 }
 
+// Запуск на Windows
 #ifdef _WIN32
-
 void startWindows(Configuration *config) {
     printf("Starting ...\n");
-
-    init_winsock();
 
     unsigned int numberThread = config->howManyThreadRun;
     printf("Number threads to RUN = %i\n", numberThread);
@@ -72,6 +73,7 @@ void startWindows(Configuration *config) {
     }
 }
 
+// Запуск на Linux
 #elifdef __linux__
 void startLinux(Configuration config) {
     //TO DO

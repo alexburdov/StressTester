@@ -1,9 +1,13 @@
-//
-// Created by Aleksandr Burdovitsin on 03.12.2025.
-//
-
+/**
+ *
+ * Пакет конфигурации
+ *
+ * Created by Aleksandr Burdovitsin on 03.12.2025.
+**/
 #ifndef HTTPSTRESSCLIENTC_CONFIGURATION_H
 #define HTTPSTRESSCLIENTC_CONFIGURATION_H
+
+#include "common.h"
 
 #include <psdk_inc/_ip_types.h>
 

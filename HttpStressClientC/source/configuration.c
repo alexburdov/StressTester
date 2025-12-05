@@ -13,13 +13,13 @@
 Configuration getDefaultConfiguration() {
     Configuration config;
 
-    config.hostname = "localhost";
-    config.port = 8080;
+    config.hostname = DEFAULT_HOST;
+    config.port = DEFAULT_PORT;
 
     initServerAdress(&config);
 
-    config.howManyThreadRun = 1000;
-    config.numberOfCycles = 10000;
+    config.howManyThreadRun = DEFAULT_HOW_MANY_THREADS;
+    config.numberOfCycles = DEFAULT_NUMBER_OF_CYCLES;
 
     return config;
 }

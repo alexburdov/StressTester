@@ -7,18 +7,9 @@
 #include <stdio.h>
 #include <time.h>
 
-// Функция для инициализации сети (только для Windows)
-#ifdef _WIN32
-int init_winsock() {
-    WSADATA wsaData;
-    return WSAStartup(MAKEWORD(2, 2), &wsaData);
-}
-#endif
-
 // Функция для создания HTTP GET запроса
 void buildHttpRequest(char *buffer, size_t size,
                       const char *host, const char *path) {
-    // size_t sz = strlen(REQUEST_PATTERN) + strlen(host) + strlen(path) - 3;
     snprintf(buffer, size, REQUEST_PATTERN, path, host);
 }
 
@@ -89,7 +80,6 @@ SOCKET setupServerSocket() {
     if (!setSocketTimeout(sockFd, DEFAULT_TIMEOUT_SECONDS)) {
         perror("Failed to set socket timeout");
     }
-
     return sockFd;
 }
 
@@ -111,15 +101,16 @@ void *httpEndpoint(void *parameters)
 
     clock_t startTime, endTime, startStepTime, endStepTime;
 
-    char request[512];
-    char response[2048];
+    char request[REQUEST_SIZE];
+    char response[RESPONSE_SIZE];
 
     startTime = clock();
 
     HANDLE hEvent = data->handleEvent;
     DWORD threadId = GetCurrentThreadId();
     data->processorId = GetCurrentProcessorNumber();
-    printf("Thread ID: %lu Inner thread Id %i Processor Number %lu \n", threadId, data->innerThreadId, data->processorId);
+    printf("Thread ID: %lu Inner thread Id %i Processor Number %lu \n", threadId, data->innerThreadId,
+           data->processorId);
 
     for (int i = 0; i < data->loopNumber; i++) {
         SOCKET sockFd = setupServerSocket();
@@ -141,14 +132,14 @@ void *httpEndpoint(void *parameters)
 
             if (bytesSent == SOCKET_ERROR) {
                 perror("Failed to send request");
-                data->failure[0]++;
+                data->failure[SOCKET_FAILURE]++;
                 break;
             }
 
             // Принимаем ответ
             ssize_t totalReceived = 0;
             ssize_t bytesReceived;
-            Sleep(10);
+            Sleep(AFTER_CONNECT_SLEEP);
             while (1) {
 #ifdef _WIN32
                 bytesReceived = recv(sockFd, response + totalReceived, (int) (sizeof(response) - totalReceived - 1), 0);
@@ -161,18 +152,18 @@ void *httpEndpoint(void *parameters)
                     totalReceived += bytesReceived;
                     if (totalReceived >= sizeof(response) - 1) {
 #ifdef DEBUG
-                        //printf("%i Response INTERRUPT: %s \n", i, response);
+                        printf("%i Response INTERRUPT: %s \n", i, response);
 #endif
                         break;
                     }
                 } else if (bytesReceived == 0) {
 #ifdef DEBUG
-                    // printf("%i Response : %s \n", i, response);
+                    printf("%i Response : %s \n", i, response);
 #endif
                     break;
                 } else {
                     // Ошибка приема
-                    data->failure[1]++;
+                    data->failure[RECEIVE_FAILURE]++;
                     perror("Failed to receive response");
                     break;
                 }
@@ -199,6 +190,7 @@ void *httpEndpoint(void *parameters)
             closesocket(sockFd);
         } else {
             perror("Failed to connect to port");
+            data->failure[SEND_FAILURE]++;
         }
     }
 
@@ -207,7 +199,7 @@ void *httpEndpoint(void *parameters)
 
     SetEvent(hEvent);
 #ifdef DEBUG
-     printf("Event signaled by thread. %lu %i\n", threadId, data->innerThreadId);
+    printf("Event signaled by thread. %lu %i\n", threadId, data->innerThreadId);
 #endif
 
 #ifdef _WIN32
