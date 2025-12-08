@@ -204,9 +204,11 @@ void *httpEndpoint(void *parameters)
 #endif
             data->failure[SEND_FAILURE]++;
         }
-        if (*data->globalFailureCount > 1000) {
-            printf("Fails = %lu \n", *data->globalFailureCount);
-            printf("STOP BY FAILED COUNT Thread ID: %lu \n", threadId);
+        if (*data->globalFailureCount > data->failureThreshold) {
+#ifdef DEBUG
+            printf("Fails = %lu %lu = ", *data->globalFailureCount, data->failureThreshold);
+            printf("STOP BY FAILED COUNT Thread ID: %i \n", data->innerThreadId);
+#endif
             break;
         }
     } while (iterations++ < data->maxIterationRun);

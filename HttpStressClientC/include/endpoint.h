@@ -50,7 +50,7 @@ typedef struct {
 #ifdef _WIN32
     LONG *globalFailureCount;
 #endif
-    long failureThreshold;
+    unsigned long failureThreshold;
 
     unsigned long failure[FAILURE_CODES_SIZE];
 
