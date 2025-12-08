@@ -11,16 +11,31 @@
 
 #include <psdk_inc/_ip_types.h>
 
+#include "endpoint.h"
+
 /**
  *  Структура конфигурации приложения
  */
 typedef struct {
-    struct sockaddr_in serverAddress;
-    char* hostname;
-    int port;
+    struct sockaddr_in serverAddress; // Переменная для хранения адреса сервера при инициализации
+
+    char* hostname; // Имя хоста сервера
+    int port; // Порт сервера
 
     unsigned int howManyThreadRun;
-    unsigned long numberOfCycles;
+    unsigned long maxIterationRun;
+
+    uint8_t addThreadBatchSize;
+    uint8_t addThreadTimeInSecond;
+    uint8_t maxAddCount;
+
+#ifdef _WIN32
+    LONG globalFailureCount;
+#endif
+
+    bool isFailureThresholdUse;
+    unsigned long failureThreshold;
+
 } Configuration;
 
 /**

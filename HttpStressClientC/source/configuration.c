@@ -13,13 +13,23 @@
 Configuration getDefaultConfiguration() {
     Configuration config;
 
+    config.globalFailureCount = 0;
+
     config.hostname = DEFAULT_HOST;
     config.port = DEFAULT_PORT;
 
     initServerAdress(&config);
 
     config.howManyThreadRun = DEFAULT_HOW_MANY_THREADS;
-    config.numberOfCycles = DEFAULT_NUMBER_OF_CYCLES;
+    config.maxIterationRun = DEFAULT_NUMBER_OF_CYCLES;
+
+    config.isFailureThresholdUse = DEFAULT_FAILURE_THRESHOLD_USE;
+    config.addThreadBatchSize = DEFAULT_ADD_THREAD_BATCH_SIZE;
+    config.addThreadTimeInSecond =  DEFAULT_ADD_THREAD_TIME_IN_SECONDS;
+    config.maxAddCount = DEFAULT_MAX_ADD_COUNT;
+
+    config.failureThreshold = DEFAULT_FAILURE_THRESHOLD;;
+
 
     return config;
 }

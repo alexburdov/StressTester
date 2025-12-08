@@ -106,13 +106,16 @@ void *httpEndpoint(void *parameters)
 
     startTime = clock();
 
-    HANDLE hEvent = data->handleEvent;
+    HANDLE handleEvent = data->handleEvent;
     DWORD threadId = GetCurrentThreadId();
     data->processorId = GetCurrentProcessorNumber();
     printf("Thread ID: %lu Inner thread Id %i Processor Number %lu \n", threadId, data->innerThreadId,
            data->processorId);
 
-    for (int i = 0; i < data->loopNumber; i++) {
+    unsigned long iterations = 0;
+
+    //for (int i = 0; i < data->maxIterationRun; i++) {
+    do {
         SOCKET sockFd = setupServerSocket();
         // Подключаемся к серверу
         if (connect(sockFd, (struct sockaddr *) data->serverAddress, sizeof(struct sockaddr_in)) != SOCKET_ERROR) {
@@ -132,6 +135,9 @@ void *httpEndpoint(void *parameters)
 
             if (bytesSent == SOCKET_ERROR) {
                 perror("Failed to send request");
+#ifdef _WIN32
+                InterlockedIncrement(data->globalFailureCount);
+#endif
                 data->failure[SOCKET_FAILURE]++;
                 break;
             }
@@ -163,6 +169,9 @@ void *httpEndpoint(void *parameters)
                     break;
                 } else {
                     // Ошибка приема
+#ifdef _WIN32
+                    InterlockedIncrement(data->globalFailureCount);
+#endif
                     data->failure[RECEIVE_FAILURE]++;
                     perror("Failed to receive response");
                     break;
@@ -173,31 +182,40 @@ void *httpEndpoint(void *parameters)
 
             unsigned long diffTime = timeDiff(startStepTime, endStepTime);
 
-            if (i == 0) {
+            if (iterations == 0) {
                 data->minTime = diffTime;
                 data->maxTime = diffTime;
                 data->firstTime = diffTime;
             }
             if (diffTime < data->minTime) {
                 data->minTime = diffTime;
-                data->minTimeStep = i;
+                data->minTimeStep = iterations;
             }
             if (diffTime > data->maxTime) {
                 data->maxTime = diffTime;
-                data->maxTimeStep = i;
+                data->maxTimeStep = iterations;
             }
             data->success++;
             closesocket(sockFd);
         } else {
             perror("Failed to connect to port");
+#ifdef _WIN32
+            InterlockedIncrement(data->globalFailureCount);
+#endif
             data->failure[SEND_FAILURE]++;
         }
-    }
+        if (*data->globalFailureCount > 1000) {
+            printf("Fails = %lu \n", *data->globalFailureCount);
+            printf("STOP BY FAILED COUNT Thread ID: %lu \n", threadId);
+            break;
+        }
+    } while (iterations++ < data->maxIterationRun);
 
     endTime = clock();
     data->allTime = timeDiff(startTime, endTime);
-
-    SetEvent(hEvent);
+    if (handleEvent) {
+        SetEvent(handleEvent);
+    }
 #ifdef DEBUG
     printf("Event signaled by thread. %lu %i\n", threadId, data->innerThreadId);
 #endif

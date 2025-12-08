@@ -37,7 +37,7 @@ enum failureCodes {
 // Структура для передачи данных в поток
 typedef struct {
     unsigned int innerThreadId;
-    unsigned long loopNumber;
+    unsigned long maxIterationRun;
 
     struct sockaddr_in *serverAddress;
 
@@ -47,6 +47,11 @@ typedef struct {
 #endif
 
     unsigned long success;
+#ifdef _WIN32
+    LONG *globalFailureCount;
+#endif
+    long failureThreshold;
+
     unsigned long failure[FAILURE_CODES_SIZE];
 
     unsigned int allTime; // Не понятно как мерить среднее время - учитывать запуски потоков с ошибками или нет?
