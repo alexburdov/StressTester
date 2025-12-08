@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  simple_java_service:
+    container_name: simple_java_service
+    image: simple_java_service:v0.1
+    ports:
+      - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: 1
+          memory: 256M
+
+
