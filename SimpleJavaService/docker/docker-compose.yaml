@@ -5,6 +5,10 @@ services:
     image: simple_java_service:v0.1
     ports:
       - "8080:8080"
+    ulimits:
+      nofile:
+        soft: 512
+        hard: 512
     deploy:
       resources:
         limits:
