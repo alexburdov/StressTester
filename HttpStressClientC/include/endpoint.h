@@ -14,6 +14,11 @@
 #define REQUEST_PATTERN "GET %s HTTP/1.1\r\nHost: %s\r\nUser-Agent: HTTP-Client-C/1.0 (Cross-Platform)\r\nConnection: close\r\n\r\n"
 
 #include "common.h"
+#include <limits.h>
+#include <stdio.h>
+#include <time.h>
+#include <asm-generic/socket.h>
+#include <sys/socket.h>
 
 // Платформозависимые заголовки
 #ifdef _WIN32
@@ -23,7 +28,18 @@
 #pragma comment(lib, "ws2_32.lib")
 
 #elifdef __linux__
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <stdio.h>
 
+#include <stdatomic.h>
+#define InterlockedIncrement(ptr) atomic_fetch_add(ptr, 1) + 1
+#define InterlockedDecrement(ptr) atomic_fetch_sub(ptr, 1) - 1
+
+#define SOCKET int
+#define SOCKET_ERROR 0
+#define INVALID_SOCKET (-1)
 #endif
 
 enum failureCodes {
@@ -49,6 +65,8 @@ typedef struct {
     unsigned long success;
 #ifdef _WIN32
     LONG *globalFailureCount;
+#elifdef __linux__
+    long *globalFailureCount;
 #endif
     unsigned long failureThreshold;
 

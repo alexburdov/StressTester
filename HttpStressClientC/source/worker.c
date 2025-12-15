@@ -111,7 +111,7 @@ void startWindows(Configuration *config) {
 
 // Запуск на Linux
 #elifdef __linux__
-void startLinux(Configuration config) {
+void startLinux(Configuration *config) {
     //TO DO
 }
 #endif

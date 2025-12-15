@@ -26,7 +26,7 @@ void startWindows(Configuration *config);
  * @param config - Конфигурация
  */
 
-void startLinux(Configuration^ config);
+void startLinux(Configuration *config);
 #endif
 
 #endif //HTTPSTRESSCLIENTC_WORKER_H

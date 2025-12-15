@@ -47,7 +47,7 @@ uint64_t getNowInMs() {
 }
 #endif
 
-#ifdef _WIN32
+// #ifdef _WIN32  TODO
 // Получить разницу во времени в миллисекундах
 unsigned long timeDiff(clock_t start, clock_t end) {
     unsigned long elapsed;
@@ -58,4 +58,4 @@ unsigned long timeDiff(clock_t start, clock_t end) {
     }
     return elapsed;
 }
-#endif
+// #endif  TODO

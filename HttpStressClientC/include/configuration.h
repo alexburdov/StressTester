@@ -8,8 +8,14 @@
 #define HTTPSTRESSCLIENTC_CONFIGURATION_H
 
 #include "common.h"
-
+#ifdef _WIN32
 #include <psdk_inc/_ip_types.h>
+#elifdef __linux__
+#include <netinet/in.h>
+#include <netdb.h>      // Основной заголовок
+#include <sys/socket.h> // Для констант
+#endif
+
 
 #include "endpoint.h"
 
@@ -19,15 +25,15 @@
 typedef struct {
     struct sockaddr_in serverAddress; // Переменная для хранения адреса сервера при инициализации
 
-    char* hostname; // Имя хоста сервера
+    char *hostname; // Имя хоста сервера
     int port; // Порт сервера
 
-    unsigned int howManyThreadRun;
-    unsigned long maxIterationRun;
+    unsigned int howManyThreadRun; // Сколько потоков будут выполнятся
+    unsigned long maxIterationRun; // Сколько итераций будет выполнено в потоке
 
-    uint8_t addThreadBatchSize;
-    uint8_t addThreadTimeInSecond;
-    uint8_t maxAddCount;
+    uint8_t addThreadBatchSize; // Сколько потоков будет добавляться при стратегии автоувеличения количества потоков
+    uint8_t addThreadTimeInSecond; // Через сколько времени будет добавляться новые потоки при стратегии автоувеличения количества потоков
+    uint8_t maxAddCount; // Сколько добавлений потоков будет выполнено при автоувеличения количества потоков
 
 #ifdef _WIN32
     LONG globalFailureCount;
@@ -35,7 +41,6 @@ typedef struct {
 
     bool isFailureThresholdUse;
     unsigned long failureThreshold;
-
 } Configuration;
 
 /**
@@ -52,6 +57,6 @@ Configuration getDefaultConfiguration();
  *
  *
  */
-void initServerAdress(Configuration *config);
+void initServerAddress(Configuration *config);
 
 #endif //HTTPSTRESSCLIENTC_CONFIGURATION_H

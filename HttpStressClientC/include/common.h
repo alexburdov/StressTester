@@ -77,7 +77,7 @@ char *generateRandomString(int length);
 uint64_t getNowInMs();
 #endif
 
-#ifdef _WIN32
+// #ifdef _WIN32 TODO
 /**
  * Получить разницу во времени в миллисекундах
  *
@@ -86,6 +86,6 @@ uint64_t getNowInMs();
  * @return  - раница в милисекундах
  */
 unsigned long timeDiff(clock_t start, clock_t end);
-#endif
+// #endif  TODO
 
 #endif //HTTPSTRESSCLIENTC_COMMON_H

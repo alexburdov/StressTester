@@ -4,9 +4,6 @@
 
 #include "../include/endpoint.h"
 
-#include <stdio.h>
-#include <time.h>
-
 // Функция для создания HTTP GET запроса
 void buildHttpRequest(char *buffer, size_t size,
                       const char *host, const char *path) {
@@ -52,8 +49,7 @@ int setSocketTimeout(SOCKET sockfd, int seconds) {
         return 0;
     }
     return 1;
-#endif
-#ifdef __linux__
+#elifdef __linux__
     struct timeval timeout;
     timeout.tv_sec = seconds;
     timeout.tv_usec = 0;
@@ -92,7 +88,12 @@ void *httpEndpoint(void *parameters)
 {
     ThreadData *data = parameters;
     data->success = 0;
+#ifdef _WIN32
     ZeroMemory(&data->failure, sizeof(data->failure));
+#elifdef __linux__
+    memset(&data->failure, 0, sizeof(data->failure));
+#endif
+
     data->allTime = 0;
     data->minTime = INT_MAX;
     data->maxTime = 0;
@@ -105,16 +106,16 @@ void *httpEndpoint(void *parameters)
     char response[RESPONSE_SIZE];
 
     startTime = clock();
-
+    unsigned long iterations = 0;
+#ifdef _WIN32
     HANDLE handleEvent = data->handleEvent;
     DWORD threadId = GetCurrentThreadId();
     data->processorId = GetCurrentProcessorNumber();
     printf("Thread ID: %lu Inner thread Id %i Processor Number %lu \n", threadId, data->innerThreadId,
            data->processorId);
-
-    unsigned long iterations = 0;
-
-    //for (int i = 0; i < data->maxIterationRun; i++) {
+#elifdef __linux__
+    //TODO
+#endif
     do {
         SOCKET sockFd = setupServerSocket();
         // Подключаемся к серверу
@@ -145,12 +146,16 @@ void *httpEndpoint(void *parameters)
             // Принимаем ответ
             ssize_t totalReceived = 0;
             ssize_t bytesReceived;
+#ifdef _WIN32
             Sleep(AFTER_CONNECT_SLEEP);
+#elifdef __linux__
+            sleep(AFTER_CONNECT_SLEEP);
+#endif
+
             while (1) {
 #ifdef _WIN32
                 bytesReceived = recv(sockFd, response + totalReceived, (int) (sizeof(response) - totalReceived - 1), 0);
-#endif
-#ifdef __linux__
+#elifdef __linux__
                 bytesReceived = recv(sockFd, response + totalReceived, sizeof(response) - totalReceived - 1, 0);
 #endif
 
@@ -196,7 +201,11 @@ void *httpEndpoint(void *parameters)
                 data->maxTimeStep = iterations;
             }
             data->success++;
+#ifdef _WIN32
             closesocket(sockFd);
+#elifdef  __linux__
+            close(sockFd);
+#endif
         } else {
             perror("Failed to connect to port");
 #ifdef _WIN32
@@ -215,9 +224,14 @@ void *httpEndpoint(void *parameters)
 
     endTime = clock();
     data->allTime = timeDiff(startTime, endTime);
+#ifdef _WIN32
     if (handleEvent) {
         SetEvent(handleEvent);
     }
+#elif __linux__
+    // TODO
+#endif
+
 #ifdef DEBUG
     printf("Event signaled by thread. %lu %i\n", threadId, data->innerThreadId);
 #endif

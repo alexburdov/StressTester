@@ -7,18 +7,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
 #include <winsock.h>
+#endif
 
 //  Получить конфигурацию по умолчанию
 Configuration getDefaultConfiguration() {
     Configuration config;
-
+#ifdef _WIN32
     config.globalFailureCount = 0;
+#endif
+
 
     config.hostname = DEFAULT_HOST;
     config.port = DEFAULT_PORT;
 
-    initServerAdress(&config);
+    initServerAddress(&config);
 
     config.howManyThreadRun = DEFAULT_HOW_MANY_THREADS;
     config.maxIterationRun = DEFAULT_NUMBER_OF_CYCLES;
@@ -35,8 +39,13 @@ Configuration getDefaultConfiguration() {
 }
 
 // Функция для получения IP-адреса хоста
-void initServerAdress(Configuration *config) {
+void initServerAddress(Configuration *config) {
+#ifdef _WIN32
     ZeroMemory(&config->serverAddress, sizeof(config->serverAddress));
+#    elifdef __linux__
+    memset(&config->serverAddress, 0, sizeof(config->serverAddress));
+#endif
+
 
 #ifdef _WIN32
     WSADATA wsaData;
