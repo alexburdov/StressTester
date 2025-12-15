@@ -17,8 +17,6 @@
 #include <limits.h>
 #include <stdio.h>
 #include <time.h>
-#include <asm-generic/socket.h>
-#include <sys/socket.h>
 
 // Платформозависимые заголовки
 #ifdef _WIN32
@@ -32,6 +30,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <asm-generic/socket.h>
+#include <sys/socket.h>
 
 #include <stdatomic.h>
 #define InterlockedIncrement(ptr) atomic_fetch_add(ptr, 1) + 1
